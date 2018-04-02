@@ -8,13 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int field0(int instruction);
-int field1(int instruction);
-int field2(int instruction);
-int opcode(int instruction);
-void printinstruction(int instr);
-void printstate(statetype *stateptr);
-
 #define NUMMEMORY 65536 /* maximum number of data words in memory */
 #define NUMREGS 8 /* number of machine registers */
 
@@ -75,7 +68,18 @@ typedef struct statestruct{
   int retired; /* Total number of completed instructions */
   int branches; /* Total number of branches executed */
   int mispreds; /* Number of branch mispredictions*/
-} stateType;
+} statetype;
+
+int field0(int instruction);
+int field1(int instruction);
+int field2(int instruction);
+int opcode(int instruction);
+void printinstruction(int instr);
+void printstate(statetype *stateptr);
+int signextend(int num);
+
+statetype state;
+statetype newstate;
 
 int main(int argc, char *argv[]){
  // Init all PC reg to 0.
@@ -84,6 +88,7 @@ int main(int argc, char *argv[]){
  // The bulk of main is a loop, where each iteration is a clock cycle.
  // At the start of each iteration, printstate().
  
+ //stateType state;
 
  while(1){
   printstate(&state);
@@ -102,10 +107,25 @@ int main(int argc, char *argv[]){
   newstate.cycles++;
 
   /*------------------ IF stage ----------------- */
+
+  //newstate ifstage(state state)
+
   /*------------------ ID stage ----------------- */
+
+  //newstate idstage(state state)
+
   /*------------------ EX stage ----------------- */
+
+  //newstate exstage(state state)
+
   /*------------------ MEM stage ----------------- */
+
+  //newstate memstage(state state)
+
   /*------------------ WB stage ----------------- */
+
+  //newstate wbstage(state state)
+
   state = newstate; /* this is the last statement before the end of the loop.
                     It marks the end of the cycle and updates the current
                     state with the values calculated in this cycle
@@ -168,7 +188,7 @@ void printstate(statetype *stateptr){
  printf("\tpc %d\n", stateptr->pc);
 
  printf("\tdata memory:\n");
-      for (i=0; i<stateptr->nummemory; i++) {
+      for (i=0; i<stateptr->numMemory; i++) {
         printf("\t\tdatamem[ %d ] %d\n", i, stateptr->datamem[i]);
       }
  printf("\tregisters:\n");
@@ -200,4 +220,11 @@ void printstate(statetype *stateptr){
       printf("\t\tinstruction ");
       printinstruction(stateptr->WBEND.instr);
       printf("\t\twritedata %d\n", stateptr->WBEND.writedata);
+}
+
+int signextend(int num){
+  if(num && (1<<15)) {
+    num -=(1<<16);
+  }
+  return(num);
 }

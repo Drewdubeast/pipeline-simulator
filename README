@@ -4,4 +4,12 @@
 #   9 Apr 2018                                #
 ###############################################
 
+INPUT GUIDELINES
 
+INSTRUCTIONS
+
+INCLUDED FILES & DIRECTORIES
+
+"pipeline.c": C code for pipelined UST-3400 simulator.
+
+"Makefile": Makefile for the simulator.
