@@ -81,11 +81,11 @@ int signextend(int num);
 /*
  * Pipeline stage functions
  */
-void IFStage(state* state, state* newstate);
-void IDStage(state* state, state* newstate);
-void EXStage(state* state, state* newstate);
-void MEMStage(state* state, state* newstate);
-void WBStage(state* state, state* newstate);
+void IFStage(statetype* state, statetype* newstate);
+void IDStage(statetype* state, statetype* newstate);
+void EXStage(statetype* state, statetype* newstate);
+void MEMStage(statetype* state, statetype* newstate);
+void WBStage(statetype* state, statetype* newstate);
 
 statetype state;
 statetype newstate;
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]){
         newstate.cycles++;
 
         /*------------------ IF stage ----------------- */
-        int IFStage(state* state, state* newstate);
+        IFStage(&state, &newstate);
 
 
         /*------------------ ID stage ----------------- */
@@ -228,34 +228,39 @@ void printstate(statetype *stateptr){
           printinstruction(stateptr->WBEND.instr);
           printf("\t\twritedata %d\n", stateptr->WBEND.writedata);
 }
-
 int signextend(int num){
   if(num && (1<<15)) {
     num -=(1<<16);
   }
   return(num);
 }
-void IFStage(state* state, state* newstate) {
+void IFStage(statetype* state, statetype* newstate) {
     /*
      * Grab instruction from memory and store in new state's pipeline register for IF
      */
-    newstate.IFID.pcplus1 = state.pc + 1;
-    newstate.IFID.instr = state.datamem[state.pc]
+    newstate->IFID.pcplus1 = state->pc + 1;
+    newstate->IFID.instr = state->datamem[state->pc];
 }
-void IDStage(state* state, state* newstate) {
+void IDStage(statetype* state, statetype* newstate) {
     /*
      * Decode instruction and store in
      */
-    newstate.IDEX.instr = state.datamem[state.pc]
-    newstate.IDEX.pcplus1 = state.pc + 1
-    newstate.IDEX.readregA = 0; //??? What to put here?
-    newstate.IDEX.readregB = 0; //??? What to put here?
-    newstate.IDEX.offset = 0; //??? What to put here?
+    newstate->IDEX.instr = state->datamem[state->pc];
+    newstate->IDEX.pcplus1 = state->pc + 1;
+    //we might have to eventually get clever here with conditionals based on instruction type.
+    //Here only I-types are implemented... We can ask about handling R tomorrow/later.
+    //This attempt is using his field functions to shift properly.
+    newstate->IDEX.readregA = field0(newstate->IDEX.instr); //??? What to put here?
+    newstate->IDEX.readregB = field1(newstate->IDEX.instr); //??? What to put here?
+    newstate->IDEX.offset = field2(newstate->IDEX.instr); //??? What to put here?
 }
-void EXStage(state* state, state* newstate) {
+void EXStage(statetype* state, statetype* newstate) {
 }
-void MEMStage(state* state, state* newstate) {
+void MEMStage(statetype* state, statetype* newstate) {
 }
-void WBStage(state* state, state* newstate) {
+void WBStage(statetype* state, statetype* newstate) {
 }
-
+int filein(int argc, char* argv[])
+{
+    // A function to handle all of the file sh*t so main doesn't get cluttered.
+}
