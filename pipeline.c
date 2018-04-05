@@ -1,11 +1,3 @@
-//
-//  main.c
-//  Pipeline_Simulator_XCode
-//
-//  Created by Drew Wilken on 4/5/18.
-//  Copyright © 2018 Drew Wilken. All rights reserved.
-//
-
 /* CISC 340 Project 3 -- Pipeline.c
  *  A pipelined implementation of the UST-3400 ISA.
  *  Drew Wilken, Nathan Taylor
@@ -297,8 +289,13 @@ void MEMStage(statetype* state, statetype* newstate) {
     }
 }
 void WBStage(statetype* state, statetype* newstate) {
-    
+    newstate->WBEND.instr = state->MEMWB.instr;
+    newstate->WBEND.writedata = state->MEMWB.writedata;
 }
+void ENDStage(statetype* state, statetype* newstate) {
+    newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
+}
+
 int filein(int argc, char* argv[])
 {
     // A function to handle all of the file sh*t so main doesn't get cluttered.
@@ -362,5 +359,4 @@ int filein(int argc, char* argv[])
     fclose(fp);
     return 1;
 }
-
 
