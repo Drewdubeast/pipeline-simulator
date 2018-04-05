@@ -241,7 +241,6 @@ void IFStage(statetype* state, statetype* newstate) {
      */
     newstate->IFID.pcplus1 = state->pc + 1;
     newstate->IFID.instr = state->datamem[state->pc];
-    
 }
 void IDStage(statetype* state, statetype* newstate) {
     /*
@@ -253,19 +252,24 @@ void IDStage(statetype* state, statetype* newstate) {
     newstate.IDEX.readregB = field1(state.IFID.instr); //grab register from instr
     newstate.IDEX.offset = field2(state.IFID.instr); //grab offset from instr
 }
-void EXStage(state* state, state* newstate) {
+void EXStage(statetype* state, statetype* newstate) {
     newstate->IDEX.instr = state->datamem[state->pc];
     newstate->IDEX.pcplus1 = state->pc + 1;
     //we might have to eventually get clever here with conditionals based on instruction type.
     //Here only I-types are implemented... We can ask about handling R tomorrow/later.
     //I think we can shift here with field methods...
-    newstate->IDEX.readregA = field0(state->IDEX.instr); //??? What to put here?
-    newstate->IDEX.readregB = field1(state->IDEX.instr); //??? What to put here?
-    newstate->IDEX.offset = field2(state->IDEX.instr); //??? What to put here?
+    
+    
+    //We should just do an if/else based on operation. Operations are defined already, so we can just get the
+    //stuff from the functions he gave us
+    newstate->IDEX.readregA = field0(state->IDEX.instr);
+    newstate->IDEX.readregB = field1(state->IDEX.instr);
+    newstate->IDEX.offset = field2(state->IDEX.instr);
 }
+
 void EXStage(statetype* state, statetype* newstate) {
-    //EXMEM
-    newstate->EXMEM.instr = state->datamem[state->pc]; 
+    
+    newstate->EXMEM.instr = state->IFID.instr;
     newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
     newstate->EXMEM.aluresult = state->EXMEM.aluresult;
     //What to do about readreg?
