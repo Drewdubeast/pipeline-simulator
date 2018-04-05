@@ -122,19 +122,18 @@ int main(int argc, char *argv[]){
 
 
         /*------------------ ID stage ----------------- */
-        
+        IDStage(&state, &newstate);        
 
-        //newstate idstage(state state)
 
         /*------------------ EX stage ----------------- */
-
+        //EXStage(&state, &newstate);
 
         /*------------------ MEM stage ----------------- */
-
+        //MEMStage(&state, &newstate);
 
         /*------------------ WB stage ----------------- */
+        //WBStage(&state, &newstate);
 
-  //newstate wbstage(state state)
 
         state = newstate; /* this is the last statement before the end of the loop.
                     It marks the end of the cycle and updates the current
@@ -242,6 +241,7 @@ void IFStage(statetype* state, statetype* newstate) {
      */
     newstate->IFID.pcplus1 = state->pc + 1;
     newstate->IFID.instr = state->datamem[state->pc];
+    
 }
 void IDStage(statetype* state, statetype* newstate) {
     /*
@@ -251,20 +251,29 @@ void IDStage(statetype* state, statetype* newstate) {
     newstate->IDEX.pcplus1 = state->pc + 1;
     //we might have to eventually get clever here with conditionals based on instruction type.
     //Here only I-types are implemented... We can ask about handling R tomorrow/later.
-    //This attempt is using his field functions to shift properly.
-    newstate->IDEX.readregA = field0(newstate->IDEX.instr); //??? What to put here?
-    newstate->IDEX.readregB = field1(newstate->IDEX.instr); //??? What to put here?
-    newstate->IDEX.offset = field2(newstate->IDEX.instr); //??? What to put here?
+    //I think we can shift here with field methods...
+    newstate->IDEX.readregA = field0(state->IDEX.instr); //??? What to put here?
+    newstate->IDEX.readregB = field1(state->IDEX.instr); //??? What to put here?
+    newstate->IDEX.offset = field2(state->IDEX.instr); //??? What to put here?
 }
 void EXStage(statetype* state, statetype* newstate) {
+    //EXMEM
+    newstate->EXMEM.instr = state->datamem[state->pc]; 
+    newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
+    newstate->EXMEM.aluresult = state->EXMEM.aluresult;
+    //What to do about readreg?
+
 }
 void MEMStage(statetype* state, statetype* newstate) {
+
 }
 void WBStage(statetype* state, statetype* newstate) {
+
 }
 int filein(int argc, char* argv[])
 {
     // A function to handle all of the file sh*t so main doesn't get cluttered.
+    // Taken verbatim from "sim.c" from Canvas.
     /** Get command line arguments **/
     char* fname;
 
