@@ -1,7 +1,15 @@
+//
+//  main.c
+//  Pipeline_Simulator_XCode
+//
+//  Created by Drew Wilken on 4/5/18.
+//  Copyright © 2018 Drew Wilken. All rights reserved.
+//
+
 /* CISC 340 Project 3 -- Pipeline.c
  *  A pipelined implementation of the UST-3400 ISA.
  *  Drew Wilken, Nathan Taylor
- *  9 April 2018 
+ *  9 April 2018
  */
 
 #include <string.h>
@@ -93,14 +101,14 @@ statetype state;
 statetype newstate;
 
 int main(int argc, char *argv[]){
- // Init all PC reg to 0.
- // Init all instr to NOOP.
-
- // The bulk of main is a loop, where each iteration is a clock cycle.
- // At the start of each iteration, printstate().
- 
- //stateType state;
-
+    // Init all PC reg to 0.
+    // Init all instr to NOOP.
+    
+    // The bulk of main is a loop, where each iteration is a clock cycle.
+    // At the start of each iteration, printstate().
+    
+    //stateType state;
+    
     while(1){
         printstate(&state);
         /* check for halt */
@@ -113,32 +121,32 @@ int main(int argc, char *argv[]){
             printf("total of %d branch mispredictions\n", state.mispreds);
             exit(0);
         }//if halt
-
+        
         newstate = state;
         newstate.cycles++;
-
+        
         /*------------------ IF stage ----------------- */
         IFStage(&state, &newstate);
-
-
+        
+        
         /*------------------ ID stage ----------------- */
-        IDStage(&state, &newstate);        
-
-
+        IDStage(&state, &newstate);
+        
+        
         /*------------------ EX stage ----------------- */
         //EXStage(&state, &newstate);
-
+        
         /*------------------ MEM stage ----------------- */
         //MEMStage(&state, &newstate);
-
+        
         /*------------------ WB stage ----------------- */
         //WBStage(&state, &newstate);
-
-
+        
+        
         state = newstate; /* this is the last statement before the end of the loop.
-                    It marks the end of the cycle and updates the current
-                    state with the values calculated in this cycle
-                    – AKA “Clock Tick”. */
+                           It marks the end of the cycle and updates the current
+                           state with the values calculated in this cycle
+                           – AKA “Clock Tick”. */
     }//while
 }//main
 
@@ -160,80 +168,80 @@ int opcode(int instruction){
 }
 
 void printinstruction(int instr) {
-     char opcodestring[10];
-     if (opcode(instr) == ADD) {
-         strcpy(opcodestring, "add");
-     } else if (opcode(instr) == NAND) {
-         strcpy(opcodestring, "nand");
-     } else if (opcode(instr) == LW) {
-         strcpy(opcodestring, "lw");
-     } else if (opcode(instr) == SW) {
-         strcpy(opcodestring, "sw");
-     } else if (opcode(instr) == BEQ) {
-         strcpy(opcodestring, "beq");
-     } else if (opcode(instr) == JALR) {
-         strcpy(opcodestring, "jalr");
-     } else if (opcode(instr) == HALT) {
-         strcpy(opcodestring, "halt");
-     } else if (opcode(instr) == NOOP) {
-         strcpy(opcodestring, "noop");
-     } else {
-         strcpy(opcodestring, "data");
-     }
-
-     if(opcode(instr) == ADD || opcode(instr) == NAND){
-         printf("%s %d %d %d\n", opcodestring, field2(instr), field0(instr), field1(instr));
-     }else if(0 == strcmp(opcodestring, "data")){
-         printf("%s %d\n", opcodestring, signextend(field2(instr)));
-     }else{
-         printf("%s %d %d %d\n", opcodestring, field0(instr), field1(instr), signextend(field2(instr)));
-     }
+    char opcodestring[10];
+    if (opcode(instr) == ADD) {
+        strcpy(opcodestring, "add");
+    } else if (opcode(instr) == NAND) {
+        strcpy(opcodestring, "nand");
+    } else if (opcode(instr) == LW) {
+        strcpy(opcodestring, "lw");
+    } else if (opcode(instr) == SW) {
+        strcpy(opcodestring, "sw");
+    } else if (opcode(instr) == BEQ) {
+        strcpy(opcodestring, "beq");
+    } else if (opcode(instr) == JALR) {
+        strcpy(opcodestring, "jalr");
+    } else if (opcode(instr) == HALT) {
+        strcpy(opcodestring, "halt");
+    } else if (opcode(instr) == NOOP) {
+        strcpy(opcodestring, "noop");
+    } else {
+        strcpy(opcodestring, "data");
+    }
+    
+    if(opcode(instr) == ADD || opcode(instr) == NAND){
+        printf("%s %d %d %d\n", opcodestring, field2(instr), field0(instr), field1(instr));
+    }else if(0 == strcmp(opcodestring, "data")){
+        printf("%s %d\n", opcodestring, signextend(field2(instr)));
+    }else{
+        printf("%s %d %d %d\n", opcodestring, field0(instr), field1(instr), signextend(field2(instr)));
+    }
 }
 
 void printstate(statetype *stateptr){
-     int i;
-     printf("\n@@@\nstate before cycle %d starts\n", stateptr->cycles);
-     printf("\tpc %d\n", stateptr->pc);
-
-     printf("\tdata memory:\n");
-          for (i=0; i<stateptr->nummemory; i++) {
-            printf("\t\tdatamem[ %d ] %d\n", i, stateptr->datamem[i]);
-          }
-     printf("\tregisters:\n");
-          for (i=0; i<NUMREGS; i++) {
-            printf("\t\treg[ %d ] %d\n", i, stateptr->reg[i]);
-          }
-     printf("\tIFID:\n");
-          printf("\t\tinstruction ");
-          printinstruction(stateptr->IFID.instr);
-          printf("\t\tpcplus1 %d\n", stateptr->IFID.pcplus1);
-     printf("\tIDEX:\n");
-          printf("\t\tinstruction ");
-          printinstruction(stateptr->IDEX.instr);
-          printf("\t\tpcplus1 %d\n", stateptr->IDEX.pcplus1);
-          printf("\t\treadregA %d\n", stateptr->IDEX.readregA);
-          printf("\t\treadregB %d\n", stateptr->IDEX.readregB);
-          printf("\t\toffset %d\n", stateptr->IDEX.offset);
-     printf("\tEXMEM:\n");
-          printf("\t\tinstruction ");
-          printinstruction(stateptr->EXMEM.instr);
-          printf("\t\tbranchtarget %d\n", stateptr->EXMEM.branchtarget);
-          printf("\t\taluresult %d\n", stateptr->EXMEM.aluresult);
-          printf("\t\treadregB %d\n", stateptr->EXMEM.readreg);
-     printf("\tMEMWB:\n");
-          printf("\t\tinstruction ");
-          printinstruction(stateptr->MEMWB.instr);
-          printf("\t\twritedata %d\n", stateptr->MEMWB.writedata);
-     printf("\tWBEND:\n");
-          printf("\t\tinstruction ");
-          printinstruction(stateptr->WBEND.instr);
-          printf("\t\twritedata %d\n", stateptr->WBEND.writedata);
+    int i;
+    printf("\n@@@\nstate before cycle %d starts\n", stateptr->cycles);
+    printf("\tpc %d\n", stateptr->pc);
+    
+    printf("\tdata memory:\n");
+    for (i=0; i<stateptr->nummemory; i++) {
+        printf("\t\tdatamem[ %d ] %d\n", i, stateptr->datamem[i]);
+    }
+    printf("\tregisters:\n");
+    for (i=0; i<NUMREGS; i++) {
+        printf("\t\treg[ %d ] %d\n", i, stateptr->reg[i]);
+    }
+    printf("\tIFID:\n");
+    printf("\t\tinstruction ");
+    printinstruction(stateptr->IFID.instr);
+    printf("\t\tpcplus1 %d\n", stateptr->IFID.pcplus1);
+    printf("\tIDEX:\n");
+    printf("\t\tinstruction ");
+    printinstruction(stateptr->IDEX.instr);
+    printf("\t\tpcplus1 %d\n", stateptr->IDEX.pcplus1);
+    printf("\t\treadregA %d\n", stateptr->IDEX.readregA);
+    printf("\t\treadregB %d\n", stateptr->IDEX.readregB);
+    printf("\t\toffset %d\n", stateptr->IDEX.offset);
+    printf("\tEXMEM:\n");
+    printf("\t\tinstruction ");
+    printinstruction(stateptr->EXMEM.instr);
+    printf("\t\tbranchtarget %d\n", stateptr->EXMEM.branchtarget);
+    printf("\t\taluresult %d\n", stateptr->EXMEM.aluresult);
+    printf("\t\treadregB %d\n", stateptr->EXMEM.readreg);
+    printf("\tMEMWB:\n");
+    printf("\t\tinstruction ");
+    printinstruction(stateptr->MEMWB.instr);
+    printf("\t\twritedata %d\n", stateptr->MEMWB.writedata);
+    printf("\tWBEND:\n");
+    printf("\t\tinstruction ");
+    printinstruction(stateptr->WBEND.instr);
+    printf("\t\twritedata %d\n", stateptr->WBEND.writedata);
 }
 int signextend(int num){
-  if(num && (1<<15)) {
-    num -=(1<<16);
-  }
-  return(num);
+    if(num && (1<<15)) {
+        num -=(1<<16);
+    }
+    return(num);
 }
 
 
@@ -251,8 +259,8 @@ void IDStage(statetype* state, statetype* newstate) {
     /*
      * Decode instruction and store in
      */
-    newstate->IDEX.instr = state.IFID.instr;
-    newstate->IDEX.pcplus1 = state.IFID.pcplus1;
+    newstate->IDEX.instr = state->IFID.instr;
+    newstate->IDEX.pcplus1 = state->IFID.pcplus1;
     newstate->IDEX.readregA = field0(state->IFID.instr); //grab registers from instr
     newstate->IDEX.readregB = field1(state->IFID.instr); //grab register from instr
     newstate->IDEX.offset = field2(state->IFID.instr); //grab offset/dst_reg from instr
@@ -265,14 +273,31 @@ void EXStage(statetype* state, statetype* newstate) {
     //that he included: opcode(instr)
     newstate->EXMEM.instr = state->IDEX.instr;
     newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
-    newstate->EXMEM.aluresult = 0; //do the ALU operations here
-    newstate->EXMEM.readreg = 0; //where do we get this?
+    
+    if(opcode(state->IDEX.instr) == ADD) {
+        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregA] + state->reg[state->IDEX.readregB];
+    }else if(opcode(state->IDEX.instr) == NAND) {
+        newstate->EXMEM.aluresult = ~(state->reg[state->IDEX.readregA]&state->reg[state->IDEX.readregB]);
+    }else if(opcode(state->IDEX.instr) == LW){
+        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregB] + state->IDEX.offset;
+    }else if(opcode(state->IDEX.instr) == SW){
+        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregB] + state->IDEX.offset;
+    }
+    
+    newstate->EXMEM.readreg = state->IDEX.readregA; //for store word, this would be the only thing we would use : register a
+    
+    //thoughts: maybe use readreg and aluresult for data forwarding
 }
 void MEMStage(statetype* state, statetype* newstate) {
-
+    newstate->MEMWB.instr = state->EXMEM.instr;
+    newstate->MEMWB.writedata = state->EXMEM.aluresult;
+    
+    if(opcode(state->IDEX.instr) == SW) {
+        newstate->datamem[state->EXMEM.aluresult] = state->reg[state->EXMEM.readreg];
+    }
 }
 void WBStage(statetype* state, statetype* newstate) {
-
+    
 }
 int filein(int argc, char* argv[])
 {
@@ -280,59 +305,62 @@ int filein(int argc, char* argv[])
     // Taken verbatim from "sim.c" from Canvas.
     /** Get command line arguments **/
     char* fname;
-
+    
     if(argc == 1){
-      fname = (char*)malloc(sizeof(char)*100);
-      printf("Enter the name of the machine code file to simulate: ");
-      fgets(fname, 100, stdin);
-      fname[strlen(fname)-1] = '\0'; // gobble up the \n with a \0
+        fname = (char*)malloc(sizeof(char)*100);
+        printf("Enter the name of the machine code file to simulate: ");
+        fgets(fname, 100, stdin);
+        fname[strlen(fname)-1] = '\0'; // gobble up the \n with a \0
     }
     else if (argc == 2){
-
-      int strsize = strlen(argv[1]);
-
-      fname = (char*)malloc(strsize);
-      fname[0] = '\0';
-
-      strcat(fname, argv[1]);
+        
+        int strsize = strlen(argv[1]);
+        
+        fname = (char*)malloc(strsize);
+        fname[0] = '\0';
+        
+        strcat(fname, argv[1]);
     }else{
-      printf("Please run this program correctly\n");
-      exit(-1);
+        printf("Please run this program correctly\n");
+        exit(-1);
     }
-
+    
     FILE *fp = fopen(fname, "r");
     if (fp == NULL) {
-      printf("Cannot open file '%s' : %s\n", fname, strerror(errno));
-      return -1;
+        printf("Cannot open file '%s' : %s\n", fname, strerror(errno));
+        return -1;
     }
-
+    
     /* count the number of lines by counting newline characters */
     int line_count = 0;
     int c;
     while (EOF != (c=getc(fp))) {
-      if ( c == '\n' ){
-        line_count++;
-      }
+        if ( c == '\n' ){
+            line_count++;
+        }
     }
     // reset fp to the beginning of the file
     rewind(fp);
-
+    
     statetype* state = (statetype*)malloc(sizeof(statetype));
-
+    
     state->pc = 0;
     memset(state->datamem, 0, NUMMEMORY*sizeof(int));
     memset(state->reg, 0, NUMREGS*sizeof(int));
-
+    
     state->nummemory = line_count;
-
+    
     char line[256];
-
+    
     int i = 0;
     while (fgets(line, sizeof(line), fp)) {
-      /* note that fgets doesn't strip the terminating \n, checking its
+        /* note that fgets doesn't strip the terminating \n, checking its
          presence would allow to handle lines longer that sizeof(line) */
-      state->datamem[i] = atoi(line);
-      i++;
+        state->datamem[i] = atoi(line);
+        i++;
     }
-    fclose(fp); 
+    fclose(fp);
+    return 1;
 }
+
+
