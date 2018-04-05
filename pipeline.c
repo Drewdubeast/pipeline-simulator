@@ -93,6 +93,67 @@ statetype state;
 statetype newstate;
 
 int main(int argc, char *argv[]){
+	
+  	// Taken verbatim from "sim.c" from Canvas.
+    /** Get command line arguments **/
+    char* fname;
+    
+    if(argc == 1){
+        fname = (char*)malloc(sizeof(char)*100);
+        printf("Enter the name of the machine code file to simulate: ");
+        fgets(fname, 100, stdin);
+        fname[strlen(fname)-1] = '\0'; // gobble up the \n with a \0
+    }
+    else if (argc == 2){
+        
+        int strsize = strlen(argv[1]);
+        
+        fname = (char*)malloc(strsize);
+        fname[0] = '\0';
+        
+        strcat(fname, argv[1]);
+    }else{
+        printf("Please run this program correctly\n");
+        exit(-1);
+    }
+    
+    FILE *fp = fopen(fname, "r");
+    if (fp == NULL) {
+        printf("Cannot open file '%s' : %s\n", fname, strerror(errno));
+        return -1;
+    }
+    
+    /* count the number of lines by counting newline characters */
+    int line_count = 0;
+    int c;
+    while (EOF != (c=getc(fp))) {
+        if ( c == '\n' ){
+            line_count++;
+        }
+    }
+    // reset fp to the beginning of the file
+    rewind(fp);
+    
+    //statetype* state = (statetype*)malloc(sizeof(statetype));
+    
+    state.pc = 0;
+    memset(state.datamem, 0, NUMMEMORY*sizeof(int));
+    memset(state.reg, 0, NUMREGS*sizeof(int));
+    
+    state.nummemory = line_count;
+    
+    char line[256];
+    
+    int i = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        /* note that fgets doesn't strip the terminating \n, checking its
+         presence would allow to handle lines longer that sizeof(line) */
+        state.datamem[i] = atoi(line);
+        i++;
+    }
+    fclose(fp);
+	
+	
     // Init all PC reg to 0.
     // Init all instr to NOOP.
     
