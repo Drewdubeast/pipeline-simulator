@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+
 
 #define NUMMEMORY 65536 /* maximum number of data words in memory */
 #define NUMREGS 8 /* number of machine registers */
@@ -57,7 +59,7 @@ typedef struct statestruct{
     int instrmem[NUMMEMORY];
     int datamem[NUMMEMORY];
     int reg[NUMREGS];
-    int numMemory;
+    int nummemory;
     IFIDType IFID;
     IDEXType IDEX;
     EXMEMType EXMEM;
@@ -81,11 +83,11 @@ int signextend(int num);
 /*
  * Pipeline stage functions
  */
-void IFStage(state* state, state* newstate);
-void IDStage(state* state, state* newstate);
-void EXStage(state* state, state* newstate);
-void MEMStage(state* state, state* newstate);
-void WBStage(state* state, state* newstate);
+void IFStage(statetype* state, statetype* newstate);
+void IDStage(statetype* state, statetype* newstate);
+void EXStage(statetype* state, statetype* newstate);
+void MEMStage(statetype* state, statetype* newstate);
+void WBStage(statetype* state, statetype* newstate);
 
 statetype state;
 statetype newstate;
@@ -116,23 +118,22 @@ int main(int argc, char *argv[]){
         newstate.cycles++;
 
         /*------------------ IF stage ----------------- */
-        int IFStage(state* state, state* newstate);
+        IFStage(&state, &newstate);
 
 
         /*------------------ ID stage ----------------- */
-        
+        IDStage(&state, &newstate);        
 
-        //newstate idstage(state state)
 
         /*------------------ EX stage ----------------- */
-
+        //EXStage(&state, &newstate);
 
         /*------------------ MEM stage ----------------- */
-
+        //MEMStage(&state, &newstate);
 
         /*------------------ WB stage ----------------- */
+        //WBStage(&state, &newstate);
 
-  //newstate wbstage(state state)
 
         state = newstate; /* this is the last statement before the end of the loop.
                     It marks the end of the cycle and updates the current
@@ -195,7 +196,7 @@ void printstate(statetype *stateptr){
      printf("\tpc %d\n", stateptr->pc);
 
      printf("\tdata memory:\n");
-          for (i=0; i<stateptr->numMemory; i++) {
+          for (i=0; i<stateptr->nummemory; i++) {
             printf("\t\tdatamem[ %d ] %d\n", i, stateptr->datamem[i]);
           }
      printf("\tregisters:\n");
@@ -228,21 +229,21 @@ void printstate(statetype *stateptr){
           printinstruction(stateptr->WBEND.instr);
           printf("\t\twritedata %d\n", stateptr->WBEND.writedata);
 }
-
 int signextend(int num){
   if(num && (1<<15)) {
     num -=(1<<16);
   }
   return(num);
 }
-void IFStage(state* state, state* newstate) {
+void IFStage(statetype* state, statetype* newstate) {
     /*
      * Grab instruction from memory and store in new state's pipeline register for IF
      */
-    newstate.IFID.pcplus1 = state.pc + 1;
-    newstate.IFID.instr = state.datamem[state.pc]
+    newstate->IFID.pcplus1 = state->pc + 1;
+    newstate->IFID.instr = state->datamem[state->pc];
+    
 }
-void IDStage(state* state, state* newstate) {
+void IDStage(statetype* state, statetype* newstate) {
     /*
      * Decode instruction and store in
      */
@@ -253,9 +254,88 @@ void IDStage(state* state, state* newstate) {
     newstate.IDEX.offset = field2(state.IFID.instr); //grab offset from instr
 }
 void EXStage(state* state, state* newstate) {
+    newstate->IDEX.instr = state->datamem[state->pc];
+    newstate->IDEX.pcplus1 = state->pc + 1;
+    //we might have to eventually get clever here with conditionals based on instruction type.
+    //Here only I-types are implemented... We can ask about handling R tomorrow/later.
+    //I think we can shift here with field methods...
+    newstate->IDEX.readregA = field0(state->IDEX.instr); //??? What to put here?
+    newstate->IDEX.readregB = field1(state->IDEX.instr); //??? What to put here?
+    newstate->IDEX.offset = field2(state->IDEX.instr); //??? What to put here?
 }
-void MEMStage(state* state, state* newstate) {
-}
-void WBStage(state* state, state* newstate) {
-}
+void EXStage(statetype* state, statetype* newstate) {
+    //EXMEM
+    newstate->EXMEM.instr = state->datamem[state->pc]; 
+    newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
+    newstate->EXMEM.aluresult = state->EXMEM.aluresult;
+    //What to do about readreg?
 
+}
+void MEMStage(statetype* state, statetype* newstate) {
+
+}
+void WBStage(statetype* state, statetype* newstate) {
+
+}
+int filein(int argc, char* argv[])
+{
+    // A function to handle all of the file sh*t so main doesn't get cluttered.
+    // Taken verbatim from "sim.c" from Canvas.
+    /** Get command line arguments **/
+    char* fname;
+
+    if(argc == 1){
+      fname = (char*)malloc(sizeof(char)*100);
+      printf("Enter the name of the machine code file to simulate: ");
+      fgets(fname, 100, stdin);
+      fname[strlen(fname)-1] = '\0'; // gobble up the \n with a \0
+    }
+    else if (argc == 2){
+
+      int strsize = strlen(argv[1]);
+
+      fname = (char*)malloc(strsize);
+      fname[0] = '\0';
+
+      strcat(fname, argv[1]);
+    }else{
+      printf("Please run this program correctly\n");
+      exit(-1);
+    }
+
+    FILE *fp = fopen(fname, "r");
+    if (fp == NULL) {
+      printf("Cannot open file '%s' : %s\n", fname, strerror(errno));
+      return -1;
+    }
+
+    /* count the number of lines by counting newline characters */
+    int line_count = 0;
+    int c;
+    while (EOF != (c=getc(fp))) {
+      if ( c == '\n' ){
+        line_count++;
+      }
+    }
+    // reset fp to the beginning of the file
+    rewind(fp);
+
+    statetype* state = (statetype*)malloc(sizeof(statetype));
+
+    state->pc = 0;
+    memset(state->datamem, 0, NUMMEMORY*sizeof(int));
+    memset(state->reg, 0, NUMREGS*sizeof(int));
+
+    state->nummemory = line_count;
+
+    char line[256];
+
+    int i = 0;
+    while (fgets(line, sizeof(line), fp)) {
+      /* note that fgets doesn't strip the terminating \n, checking its
+         presence would allow to handle lines longer that sizeof(line) */
+      state->datamem[i] = atoi(line);
+      i++;
+    }
+    fclose(fp); 
+}
