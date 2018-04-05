@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+
 
 #define NUMMEMORY 65536 /* maximum number of data words in memory */
 #define NUMREGS 8 /* number of machine registers */
@@ -57,7 +59,7 @@ typedef struct statestruct{
     int instrmem[NUMMEMORY];
     int datamem[NUMMEMORY];
     int reg[NUMREGS];
-    int numMemory;
+    int nummemory;
     IFIDType IFID;
     IDEXType IDEX;
     EXMEMType EXMEM;
@@ -195,7 +197,7 @@ void printstate(statetype *stateptr){
      printf("\tpc %d\n", stateptr->pc);
 
      printf("\tdata memory:\n");
-          for (i=0; i<stateptr->numMemory; i++) {
+          for (i=0; i<stateptr->nummemory; i++) {
             printf("\t\tdatamem[ %d ] %d\n", i, stateptr->datamem[i]);
           }
      printf("\tregisters:\n");
@@ -263,4 +265,61 @@ void WBStage(statetype* state, statetype* newstate) {
 int filein(int argc, char* argv[])
 {
     // A function to handle all of the file sh*t so main doesn't get cluttered.
+    /** Get command line arguments **/
+    char* fname;
+
+    if(argc == 1){
+      fname = (char*)malloc(sizeof(char)*100);
+      printf("Enter the name of the machine code file to simulate: ");
+      fgets(fname, 100, stdin);
+      fname[strlen(fname)-1] = '\0'; // gobble up the \n with a \0
+    }
+    else if (argc == 2){
+
+      int strsize = strlen(argv[1]);
+
+      fname = (char*)malloc(strsize);
+      fname[0] = '\0';
+
+      strcat(fname, argv[1]);
+    }else{
+      printf("Please run this program correctly\n");
+      exit(-1);
+    }
+
+    FILE *fp = fopen(fname, "r");
+    if (fp == NULL) {
+      printf("Cannot open file '%s' : %s\n", fname, strerror(errno));
+      return -1;
+    }
+
+    /* count the number of lines by counting newline characters */
+    int line_count = 0;
+    int c;
+    while (EOF != (c=getc(fp))) {
+      if ( c == '\n' ){
+        line_count++;
+      }
+    }
+    // reset fp to the beginning of the file
+    rewind(fp);
+
+    statetype* state = (statetype*)malloc(sizeof(statetype));
+
+    state->pc = 0;
+    memset(state->datamem, 0, NUMMEMORY*sizeof(int));
+    memset(state->reg, 0, NUMREGS*sizeof(int));
+
+    state->nummemory = line_count;
+
+    char line[256];
+
+    int i = 0;
+    while (fgets(line, sizeof(line), fp)) {
+      /* note that fgets doesn't strip the terminating \n, checking its
+         presence would allow to handle lines longer that sizeof(line) */
+      state->datamem[i] = atoi(line);
+      i++;
+    }
+    fclose(fp); 
 }
