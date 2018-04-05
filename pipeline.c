@@ -235,6 +235,11 @@ int signextend(int num){
   }
   return(num);
 }
+
+
+/*
+ * PIPELINE STAGE FUNCTIONS
+ */
 void IFStage(statetype* state, statetype* newstate) {
     /*
      * Grab instruction from memory and store in new state's pipeline register for IF
@@ -246,34 +251,22 @@ void IDStage(statetype* state, statetype* newstate) {
     /*
      * Decode instruction and store in
      */
-    newstate.IDEX.instr = state.IFID.instr;
-    newstate.IDEX.pcplus1 = state.IFID.pcplus1;
-    newstate.IDEX.readregA = field0(state.IFID.instr); //grab registers from instr
-    newstate.IDEX.readregB = field1(state.IFID.instr); //grab register from instr
-    newstate.IDEX.offset = field2(state.IFID.instr); //grab offset from instr
+    newstate->IDEX.instr = state.IFID.instr;
+    newstate->IDEX.pcplus1 = state.IFID.pcplus1;
+    newstate->IDEX.readregA = field0(state->IFID.instr); //grab registers from instr
+    newstate->IDEX.readregB = field1(state->IFID.instr); //grab register from instr
+    newstate->IDEX.offset = field2(state->IFID.instr); //grab offset/dst_reg from instr
+    
+    //offset can be treated as destination register I think as well, because in the field2 function, it
+    //just returns whatever is in the least significant 16 bits. If it's R-Type, it's just 3 bits, if it's I, then 16 possible.
 }
 void EXStage(statetype* state, statetype* newstate) {
-    newstate->IDEX.instr = state->datamem[state->pc];
-    newstate->IDEX.pcplus1 = state->pc + 1;
-    //we might have to eventually get clever here with conditionals based on instruction type.
-    //Here only I-types are implemented... We can ask about handling R tomorrow/later.
-    //I think we can shift here with field methods...
-    
-    
-    //We should just do an if/else based on operation. Operations are defined already, so we can just get the
-    //stuff from the functions he gave us
-    newstate->IDEX.readregA = field0(state->IDEX.instr);
-    newstate->IDEX.readregB = field1(state->IDEX.instr);
-    newstate->IDEX.offset = field2(state->IDEX.instr);
-}
-
-void EXStage(statetype* state, statetype* newstate) {
-    
-    newstate->EXMEM.instr = state->IFID.instr;
+    //we need to distinguish between the two types here. We can do this by utilizing the opcode function
+    //that he included: opcode(instr)
+    newstate->EXMEM.instr = state->IDEX.instr;
     newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
-    newstate->EXMEM.aluresult = state->EXMEM.aluresult;
-    //What to do about readreg?
-
+    newstate->EXMEM.aluresult = 0; //do the ALU operations here
+    newstate->EXMEM.readreg = 0; //where do we get this?
 }
 void MEMStage(statetype* state, statetype* newstate) {
 
