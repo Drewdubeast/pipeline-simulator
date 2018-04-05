@@ -246,11 +246,11 @@ void IDStage(state* state, state* newstate) {
     /*
      * Decode instruction and store in
      */
-    newstate.IDEX.instr = state.datamem[state.pc]
-    newstate.IDEX.pcplus1 = state.pc + 1
-    newstate.IDEX.readregA = 0; //??? What to put here?
-    newstate.IDEX.readregB = 0; //??? What to put here?
-    newstate.IDEX.offset = 0; //??? What to put here?
+    newstate.IDEX.instr = state.IFID.instr;
+    newstate.IDEX.pcplus1 = state.IFID.pcplus1;
+    newstate.IDEX.readregA = field0(state.IFID.instr); //grab registers from instr
+    newstate.IDEX.readregB = field1(state.IFID.instr); //grab register from instr
+    newstate.IDEX.offset = field2(state.IFID.instr); //grab offset from instr
 }
 void EXStage(state* state, state* newstate) {
 }
