@@ -81,6 +81,7 @@ int opcode(int instruction);
 void printinstruction(int instr);
 void printstate(statetype *stateptr);
 int signextend(int num);
+void printBits(int pack);
 
 /*
  * Pipeline stage functions
@@ -90,6 +91,7 @@ void IDStage(statetype* state, statetype* newstate);
 void EXStage(statetype* state, statetype* newstate);
 void MEMStage(statetype* state, statetype* newstate);
 void WBStage(statetype* state, statetype* newstate);
+void ENDStage(statetype* state, statetype* newstate);
 
 statetype state;
 statetype newstate;
@@ -162,8 +164,8 @@ int main(int argc, char *argv[]){
     state.fetched = 0;
     state.retired = 0;
     state.branches = 0;
-    state.mispreds = 0;    
-
+    state.mispreds = 0;
+    
     // Init all instr to NOOP.
     
     state.IFID.instr = NOOPINSTRUCTION;
@@ -171,7 +173,7 @@ int main(int argc, char *argv[]){
     state.EXMEM.instr = NOOPINSTRUCTION;
     state.MEMWB.instr = NOOPINSTRUCTION;
     state.WBEND.instr = NOOPINSTRUCTION;
-
+    
     // The bulk of main is a loop, where each iteration is a clock cycle.
     // At the start of each iteration, printstate().
     
@@ -209,6 +211,7 @@ int main(int argc, char *argv[]){
         
         /*------------------ WB stage ----------------- */
         WBStage(&state, &newstate);
+        ENDStage(&state, &newstate);
         
         
         state = newstate; /* this is the last statement before the end of the loop.
@@ -259,13 +262,10 @@ void printinstruction(int instr) {
     
     if(opcode(instr) == ADD || opcode(instr) == NAND){
         printf("%s %d %d %d\n", opcodestring, field2(instr), field0(instr), field1(instr));
-        printBits(instr);
     }else if(0 == strcmp(opcodestring, "data")){
         printf("%s %d\n", opcodestring, signextend(field2(instr)));
-        printBits(instr);
     }else{
         printf("%s %d %d %d\n", opcodestring, field0(instr), field1(instr), signextend(field2(instr)));
-        printBits(instr);
     }
 }
 
@@ -345,7 +345,8 @@ void EXStage(statetype* state, statetype* newstate) {
     //we need to distinguish between the two types here. We can do this by utilizing the opcode function
     //that he included: opcode(instr)
     newstate->EXMEM.instr = state->IDEX.instr;
-    newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
+    newstate->EXMEM.branchtarget = 1;
+    newstate->EXMEM.aluresult = 0;
     
     if(opcode(state->IDEX.instr) == ADD) {
         newstate->EXMEM.aluresult = state->reg[state->IDEX.readregA] + state->reg[state->IDEX.readregB];
@@ -355,6 +356,9 @@ void EXStage(statetype* state, statetype* newstate) {
         newstate->EXMEM.aluresult = state->reg[state->IDEX.readregB] + state->IDEX.offset;
     }else if(opcode(state->IDEX.instr) == SW){
         newstate->EXMEM.aluresult = state->reg[state->IDEX.readregB] + state->IDEX.offset;
+    }else if(opcode(state->IDEX.instr) == BEQ){
+        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregA] - state->reg[state->IDEX.readregB]; //difference between. If 0, they are equal
+        newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
     }
     
     newstate->EXMEM.readreg = state->IDEX.readregA; //for store word, this would be the only thing we would use : register a
@@ -365,8 +369,18 @@ void MEMStage(statetype* state, statetype* newstate) {
     newstate->MEMWB.instr = state->EXMEM.instr;
     newstate->MEMWB.writedata = state->EXMEM.aluresult;
     
-    if(opcode(state->IDEX.instr) == SW) {
+    if(opcode(state->EXMEM.instr) == SW) {
         newstate->datamem[state->EXMEM.aluresult] = state->reg[state->EXMEM.readreg];
+    }else if(opcode(state->EXMEM.instr) == LW) {
+        newstate->MEMWB.writedata = state->datamem[state->EXMEM.aluresult];
+    }else if(opcode(state->EXMEM.instr) == BEQ) {
+        newstate->pc = state->EXMEM.branchtarget; //jump to branch target
+        newstate->MEMWB.writedata = 0; //??
+        
+        //clear previous buffers?
+        newstate->IFID.instr = NOOPINSTRUCTION;
+        newstate->IDEX.instr = NOOPINSTRUCTION;
+        newstate->EXMEM.instr = NOOPINSTRUCTION;
     }
 }
 void WBStage(statetype* state, statetype* newstate) {
@@ -374,7 +388,8 @@ void WBStage(statetype* state, statetype* newstate) {
     newstate->WBEND.writedata = state->MEMWB.writedata;
 }
 void ENDStage(statetype* state, statetype* newstate) {
-    newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
+    printf("Register writing to: %d\n", field0(state->WBEND.instr));
+    newstate->reg[field0(state->WBEND.instr)] = state->WBEND.writedata;
     //printf("The value of: %d to be stored at: reg[%d]", %state->WBEND.writedata, %field2(state->WBEND.instr);
 }
 void printBits(int pack) {
