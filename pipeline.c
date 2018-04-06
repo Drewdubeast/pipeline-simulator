@@ -244,10 +244,13 @@ void printinstruction(int instr) {
     
     if(opcode(instr) == ADD || opcode(instr) == NAND){
         printf("%s %d %d %d\n", opcodestring, field2(instr), field0(instr), field1(instr));
+        printBits(instr);
     }else if(0 == strcmp(opcodestring, "data")){
         printf("%s %d\n", opcodestring, signextend(field2(instr)));
+        printBits(instr);
     }else{
         printf("%s %d %d %d\n", opcodestring, field0(instr), field1(instr), signextend(field2(instr)));
+        printBits(instr);
     }
 }
 
@@ -357,5 +360,19 @@ void WBStage(statetype* state, statetype* newstate) {
 }
 void ENDStage(statetype* state, statetype* newstate) {
     newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
+}
+void printBits(int pack) {
+    int i;
+    int temp = pack;
+    
+    for(i=31;i>=0;i--) {
+        if(((temp>>i)&1) == 1) {
+            printf("1");
+        }
+        else {
+            printf("0");
+        }
+    }
+    putchar('\n');
 }
 
