@@ -177,9 +177,7 @@ int main(int argc, char *argv[]){
     
     //stateType state;
     
-    int z=0;
-    while(z<10){
-        z++;
+    while(1){
         printstate(&state);
         /* check for halt */
         if(HALT == opcode(state.MEMWB.instr)) {
