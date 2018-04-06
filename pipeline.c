@@ -24,6 +24,8 @@
 
 #define NOOPINSTRUCTION 0x1c00000
 
+
+
 typedef struct IFIDstruct{
     int instr;
     int pcplus1;
@@ -155,14 +157,29 @@ int main(int argc, char *argv[]){
     
     
     // Init all PC reg to 0.
+    
+    state.cycles = 0;
+    state.fetched = 0;
+    state.retired = 0;
+    state.branches = 0;
+    state.mispreds = 0;    
+
     // Init all instr to NOOP.
     
+    state.IFID.instr = NOOPINSTRUCTION;
+    state.IDEX.instr = NOOPINSTRUCTION;
+    state.EXMEM.instr = NOOPINSTRUCTION;
+    state.MEMWB.instr = NOOPINSTRUCTION;
+    state.WBEND.instr = NOOPINSTRUCTION;
+
     // The bulk of main is a loop, where each iteration is a clock cycle.
     // At the start of each iteration, printstate().
     
     //stateType state;
     
-    while(1){
+    int z=0;
+    while(z<10){
+        z++;
         printstate(&state);
         /* check for halt */
         if(HALT == opcode(state.MEMWB.instr)) {
@@ -187,13 +204,13 @@ int main(int argc, char *argv[]){
         
         
         /*------------------ EX stage ----------------- */
-        //EXStage(&state, &newstate);
+        EXStage(&state, &newstate);
         
         /*------------------ MEM stage ----------------- */
-        //MEMStage(&state, &newstate);
+        MEMStage(&state, &newstate);
         
         /*------------------ WB stage ----------------- */
-        //WBStage(&state, &newstate);
+        WBStage(&state, &newstate);
         
         
         state = newstate; /* this is the last statement before the end of the loop.
@@ -294,7 +311,7 @@ void printstate(statetype *stateptr){
     printf("\t\twritedata %d\n", stateptr->WBEND.writedata);
 }
 int signextend(int num){
-    if(num && (1<<15)) {
+    if(num & (1<<15)) {
         num -=(1<<16);
     }
     return(num);
@@ -360,6 +377,7 @@ void WBStage(statetype* state, statetype* newstate) {
 }
 void ENDStage(statetype* state, statetype* newstate) {
     newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
+    //printf("The value of: %d to be stored at: reg[%d]", %state->WBEND.writedata, %field2(state->WBEND.instr);
 }
 void printBits(int pack) {
     int i;
