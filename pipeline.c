@@ -93,8 +93,8 @@ statetype state;
 statetype newstate;
 
 int main(int argc, char *argv[]){
-	
-  	// Taken verbatim from "sim.c" from Canvas.
+    
+    // Taken verbatim from "sim.c" from Canvas.
     /** Get command line arguments **/
     char* fname;
     
@@ -152,8 +152,8 @@ int main(int argc, char *argv[]){
         i++;
     }
     fclose(fp);
-	
-	
+    
+    
     // Init all PC reg to 0.
     // Init all instr to NOOP.
     
@@ -305,8 +305,10 @@ void IFStage(statetype* state, statetype* newstate) {
     /*
      * Grab instruction from memory and store in new state's pipeline register for IF
      */
+    newstate->pc = state->pc+1;
     newstate->IFID.pcplus1 = state->pc + 1;
     newstate->IFID.instr = state->datamem[state->pc];
+    newstate->pc = state->pc+1;
 }
 void IDStage(statetype* state, statetype* newstate) {
     /*
@@ -356,3 +358,4 @@ void WBStage(statetype* state, statetype* newstate) {
 void ENDStage(statetype* state, statetype* newstate) {
     newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
 }
+
