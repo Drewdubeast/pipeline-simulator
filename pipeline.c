@@ -1,4 +1,4 @@
-/* CISC 340 Project 3 -- Pipeline.c
+/*  CISC 340 Project 3 -- Pipeline.c
  *  A pipelined implementation of the UST-3400 ISA.
  *  Drew Wilken, Nathan Taylor
  *  9 April 2018
@@ -362,8 +362,6 @@ void EXStage(statetype* state, statetype* newstate) {
     }
     
     newstate->EXMEM.readreg = state->IDEX.readregA; //for store word, this would be the only thing we would use : register a
-    
-    //thoughts: maybe use readreg and aluresult for data forwarding
 }
 void MEMStage(statetype* state, statetype* newstate) {
     newstate->MEMWB.instr = state->EXMEM.instr;
@@ -389,8 +387,12 @@ void WBStage(statetype* state, statetype* newstate) {
 }
 void ENDStage(statetype* state, statetype* newstate) {
     printf("Register writing to: %d\n", field0(state->WBEND.instr));
-    newstate->reg[field0(state->WBEND.instr)] = state->WBEND.writedata;
-    //printf("The value of: %d to be stored at: reg[%d]", %state->WBEND.writedata, %field2(state->WBEND.instr);
+    if(opcode(state->IDEX.instr) == SW){;}//do nothing
+    else if(opcode(state->IDEX.instr) == ADD || opcode(state->IDEX.instr) == NAND) {
+        newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
+    }else{
+        newstate->reg[field0(state->WBEND.instr)] = state->WBEND.writedata;
+    }
 }
 void printBits(int pack) {
     int i;
