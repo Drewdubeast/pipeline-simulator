@@ -386,11 +386,9 @@ void WBStage(statetype* state, statetype* newstate) {
     newstate->WBEND.writedata = state->MEMWB.writedata;
 }
 void ENDStage(statetype* state, statetype* newstate) {
-    printf("Register writing to: %d\n", field0(state->WBEND.instr));
-    if(opcode(state->IDEX.instr) == SW){;}//do nothing
-    else if(opcode(state->IDEX.instr) == ADD || opcode(state->IDEX.instr) == NAND) {
+    if(opcode(state->WBEND.instr) == ADD || opcode(state->IDEX.instr) == NAND) {
         newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
-    }else{
+    }else if(opcode(state->WBEND.instr) == LW){
         newstate->reg[field0(state->WBEND.instr)] = state->WBEND.writedata;
     }
 }
