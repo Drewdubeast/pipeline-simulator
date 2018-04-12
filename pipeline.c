@@ -343,7 +343,7 @@ void EXStage(statetype* state, statetype* newstate) {
     //we need to distinguish between the two types here. We can do this by utilizing the opcode function
     //that he included: opcode(instr)
     newstate->EXMEM.instr = state->IDEX.instr;
-    newstate->EXMEM.branchtarget = 1;
+    newstate->EXMEM.branchtarget = 0;
     newstate->EXMEM.aluresult = 0;
     
     //temporary read regs
