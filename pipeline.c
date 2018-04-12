@@ -334,8 +334,8 @@ void IDStage(statetype* state, statetype* newstate) {
      */
     newstate->IDEX.instr = state->IFID.instr;
     newstate->IDEX.pcplus1 = state->IFID.pcplus1;
-    newstate->IDEX.readregA = field0(state->IFID.instr); //grab registers from instr
-    newstate->IDEX.readregB = field1(state->IFID.instr); //grab register from instr
+    newstate->IDEX.readregA = state->reg[field0(state->IFID.instr)]; //grab registers from instr
+    newstate->IDEX.readregB = state->reg[field1(state->IFID.instr)]; //grab register from instr
     newstate->IDEX.offset = field2(state->IFID.instr); //grab offset/dst_reg from instr
     
     //offset can be treated as destination register I think as well, because in the field2 function, it
@@ -348,27 +348,57 @@ void EXStage(statetype* state, statetype* newstate) {
     newstate->EXMEM.branchtarget = 1;
     newstate->EXMEM.aluresult = 0;
     
+    //temporary read regs
+    int temp_readregA = state->IDEX.readregA;
+    int temp_readregB = state->IDEX.readregB;
+    
+    
+    /*
+     * ADD // NAND
+     */
+    if(opcode(state->IDEX.instr) == ADD || opcode(state->IDEX.instr) == NAND || opcode(state->IDEX.instr) == LW || opcode(state->IDEX.instr) == SW || opcode(state->IDEX.instr) == BEQ) {
+        
+        //readregA
+        if(field2(state->EXMEM.instr) == field0(state->IDEX.instr)) {
+            temp_readregA = state->EXMEM.aluresult;
+        }else if(field2(state->MEMWB.instr) == field0(state->IDEX.instr)) {
+            temp_readregA = state->MEMWB.writedata;
+        }else if(field2(state->WBEND.instr) == field0(state->IDEX.instr)) {
+            temp_readregA = state->MEMWB.writedata;
+        }
+        
+        //readregB
+        if(field2(state->EXMEM.instr) == field1(state->IDEX.instr)) {
+            temp_readregB = state->EXMEM.aluresult;
+        }else if(field2(state->MEMWB.instr) == field1(state->IDEX.instr)) {
+            temp_readregB = state->MEMWB.writedata;
+        }else if(field2(state->WBEND.instr) == field1(state->IDEX.instr)) {
+            temp_readregB = state->MEMWB.writedata;
+        }
+    }
+    
+    //Operations with updated register values
     if(opcode(state->IDEX.instr) == ADD) {
-        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregA] + state->reg[state->IDEX.readregB];
+        newstate->EXMEM.aluresult = temp_readregA + temp_readregB;
     }else if(opcode(state->IDEX.instr) == NAND) {
-        newstate->EXMEM.aluresult = ~(state->reg[state->IDEX.readregA]&state->reg[state->IDEX.readregB]);
+        newstate->EXMEM.aluresult = ~(temp_readregA&temp_readregB);
     }else if(opcode(state->IDEX.instr) == LW){
-        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregB] + state->IDEX.offset;
+        newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
     }else if(opcode(state->IDEX.instr) == SW){
-        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregB] + state->IDEX.offset;
+        newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
     }else if(opcode(state->IDEX.instr) == BEQ){
-        newstate->EXMEM.aluresult = state->reg[state->IDEX.readregA] - state->reg[state->IDEX.readregB]; //difference between. If 0, they are equal
+        newstate->EXMEM.aluresult = temp_readregA - temp_readregB; //difference between. If 0, they are equal
         newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
     }
     
-    newstate->EXMEM.readreg = state->IDEX.readregA; //for store word, this would be the only thing we would use : register a
+    newstate->EXMEM.readreg = temp_readregA; //for store word, this would be the only thing we would use : register a
 }
 void MEMStage(statetype* state, statetype* newstate) {
     newstate->MEMWB.instr = state->EXMEM.instr;
     newstate->MEMWB.writedata = state->EXMEM.aluresult;
     
     if(opcode(state->EXMEM.instr) == SW) {
-        newstate->datamem[state->EXMEM.aluresult] = state->reg[state->EXMEM.readreg];
+        newstate->datamem[state->EXMEM.aluresult] = state->EXMEM.readreg;
     }else if(opcode(state->EXMEM.instr) == LW) {
         newstate->MEMWB.writedata = state->datamem[state->EXMEM.aluresult];
     }else if(opcode(state->EXMEM.instr) == BEQ) {
