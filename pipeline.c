@@ -24,8 +24,6 @@
 
 #define NOOPINSTRUCTION 0x1c00000
 
-
-
 typedef struct IFIDstruct{
     int instr;
     int pcplus1;
@@ -352,43 +350,57 @@ void EXStage(statetype* state, statetype* newstate) {
     int temp_readregA = state->IDEX.readregA;
     int temp_readregB = state->IDEX.readregB;
     
-    
     /*
      * ADD // NAND
      */
     if(opcode(state->IDEX.instr) == ADD || opcode(state->IDEX.instr) == NAND || opcode(state->IDEX.instr) == LW || opcode(state->IDEX.instr) == SW || opcode(state->IDEX.instr) == BEQ) {
         
-        //readregA
-        if(field2(state->EXMEM.instr) == field0(state->IDEX.instr)) {
-            temp_readregA = state->EXMEM.aluresult;
-        }else if(field2(state->MEMWB.instr) == field0(state->IDEX.instr)) {
-            temp_readregA = state->MEMWB.writedata;
-        }else if(field2(state->WBEND.instr) == field0(state->IDEX.instr)) {
-            temp_readregA = state->MEMWB.writedata;
+        //IF NEXT instr is LW
+        if( opcode(state->EXMEM.instr) == LW) {
+            
+            //If either regA or regB are being loaded into in future instr
+            if(field0(state->EXMEM.instr) == field0(state->IDEX.instr) || field0(state->EXMEM.instr) == field1(state->IDEX.instr)) {
+                
+                //load stall
+                newstate->pc -= 1;
+                newstate->EXMEM.instr = NOOPINSTRUCTION;
+                newstate->IDEX = state->IDEX;
+                newstate->IFID = state->IFID;
+            }
+        }
+        else {
+            //readregA
+            if(field2(state->EXMEM.instr) == field0(state->IDEX.instr)) {
+                temp_readregA = state->EXMEM.aluresult;
+            }else if(field2(state->MEMWB.instr) == field0(state->IDEX.instr)) {
+                temp_readregA = state->MEMWB.writedata;
+            }else if(field2(state->WBEND.instr) == field0(state->IDEX.instr)) {
+                temp_readregA = state->MEMWB.writedata;
+            }
+            
+            //readregB
+            if(field2(state->EXMEM.instr) == field1(state->IDEX.instr)) {
+                temp_readregB = state->EXMEM.aluresult;
+            }else if(field2(state->MEMWB.instr) == field1(state->IDEX.instr)) {
+                temp_readregB = state->MEMWB.writedata;
+            }else if(field2(state->WBEND.instr) == field1(state->IDEX.instr)) {
+                temp_readregB = state->MEMWB.writedata;
+            }
         }
         
-        //readregB
-        if(field2(state->EXMEM.instr) == field1(state->IDEX.instr)) {
-            temp_readregB = state->EXMEM.aluresult;
-        }else if(field2(state->MEMWB.instr) == field1(state->IDEX.instr)) {
-            temp_readregB = state->MEMWB.writedata;
-        }else if(field2(state->WBEND.instr) == field1(state->IDEX.instr)) {
-            temp_readregB = state->MEMWB.writedata;
+        //Operations with updated register values
+        if(opcode(state->IDEX.instr) == ADD) {
+            newstate->EXMEM.aluresult = temp_readregA + temp_readregB;
+        }else if(opcode(state->IDEX.instr) == NAND) {
+            newstate->EXMEM.aluresult = ~(temp_readregA&temp_readregB);
+        }else if(opcode(state->IDEX.instr) == LW){
+            newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
+        }else if(opcode(state->IDEX.instr) == SW){
+            newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
+        }else if(opcode(state->IDEX.instr) == BEQ){
+            newstate->EXMEM.aluresult = temp_readregA - temp_readregB; //difference between. If 0, they are equal
+            newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
         }
-    }
-    
-    //Operations with updated register values
-    if(opcode(state->IDEX.instr) == ADD) {
-        newstate->EXMEM.aluresult = temp_readregA + temp_readregB;
-    }else if(opcode(state->IDEX.instr) == NAND) {
-        newstate->EXMEM.aluresult = ~(temp_readregA&temp_readregB);
-    }else if(opcode(state->IDEX.instr) == LW){
-        newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
-    }else if(opcode(state->IDEX.instr) == SW){
-        newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
-    }else if(opcode(state->IDEX.instr) == BEQ){
-        newstate->EXMEM.aluresult = temp_readregA - temp_readregB; //difference between. If 0, they are equal
-        newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
     }
     
     newstate->EXMEM.readreg = temp_readregA; //for store word, this would be the only thing we would use : register a
