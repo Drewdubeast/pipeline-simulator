@@ -322,10 +322,22 @@ void IFStage(statetype* state, statetype* newstate) {
     /*
      * Grab instruction from memory and store in new state's pipeline register for IF
      */
+    if(state->IFID.instr == state->instrmem[state->pc-1]) {
+        newstate->fetched = state->fetched + 1;
+    }
     newstate->pc = state->pc+1;
     newstate->IFID.pcplus1 = state->pc + 1;
     newstate->IFID.instr = state->instrmem[state->pc];
     newstate->pc = state->pc+1;
+    
+    printinstruction(state->IFID.instr);
+    printinstruction(state->instrmem[state->pc]);
+    
+    if(state->IFID.instr == state->instrmem[state->pc]) {
+        printinstruction(state->IFID.instr);
+        printinstruction(state->instrmem[state->pc]);
+        newstate->fetched = state->fetched + 1;
+    }
 }
 void IDStage(statetype* state, statetype* newstate) {
     /*
@@ -362,6 +374,7 @@ void EXStage(statetype* state, statetype* newstate) {
                 newstate->EXMEM.instr = NOOPINSTRUCTION;
                 newstate->IDEX = state->IDEX;
                 newstate->IFID = state->IFID;
+                newstate->retired = state->retired - 1;
             }
         }
         else {
@@ -412,8 +425,6 @@ void EXStage(statetype* state, statetype* newstate) {
             newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
         }else if(opcode(state->IDEX.instr) == BEQ){
             newstate->EXMEM.aluresult = temp_readregA - temp_readregB; //difference between. If 0, they are equal
-            
-            printf("branch target: %d\noffset: %d\npc+1: %d", state->IDEX.offset + state->IDEX.pcplus1, state->IDEX.offset, state->IDEX.pcplus1);
             newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
         }
     }
@@ -434,10 +445,18 @@ void MEMStage(statetype* state, statetype* newstate) {
         if(state->EXMEM.aluresult == 0) {
             newstate->pc = state->EXMEM.branchtarget; //jump to branch target
             
+            newstate->mispreds = state->mispreds + 1;
+            
             //clear previous buffers
             newstate->IFID.instr = NOOPINSTRUCTION;
             newstate->IDEX.instr = NOOPINSTRUCTION;
             newstate->EXMEM.instr = NOOPINSTRUCTION;
+            
+            //account for flushed pipeline
+            newstate->retired = state->retired - 3;
+            
+        }else {
+            newstate->branches = state->branches + 1;
         }
         newstate->MEMWB.writedata = 0; //??
     }
@@ -451,6 +470,9 @@ void WBStage(statetype* state, statetype* newstate) {
     }else if(opcode(state->MEMWB.instr) == LW){
         newstate->reg[field0(state->MEMWB.instr)] = state->MEMWB.writedata;
     }
+    
+    //retire instruction
+    newstate->retired = state->retired + 1;
 }
 void printBits(int pack) {
     int i;
