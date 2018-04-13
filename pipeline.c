@@ -335,14 +335,9 @@ void IDStage(statetype* state, statetype* newstate) {
     newstate->IDEX.pcplus1 = state->IFID.pcplus1;
     newstate->IDEX.readregA = state->reg[field0(state->IFID.instr)]; //grab registers from instr
     newstate->IDEX.readregB = state->reg[field1(state->IFID.instr)]; //grab register from instr
-    newstate->IDEX.offset = field2(state->IFID.instr); //grab offset/dst_reg from instr
-    
-    //offset can be treated as destination register I think as well, because in the field2 function, it
-    //just returns whatever is in the least significant 16 bits. If it's R-Type, it's just 3 bits, if it's I, then 16 possible.
+    newstate->IDEX.offset = signextend(field2(state->IFID.instr)); //grab offset/dst_reg from instr
 }
 void EXStage(statetype* state, statetype* newstate) {
-    //we need to distinguish between the two types here. We can do this by utilizing the opcode function
-    //that he included: opcode(instr)
     newstate->EXMEM.instr = state->IDEX.instr;
     newstate->EXMEM.branchtarget = 0;
     newstate->EXMEM.aluresult = 0;
@@ -389,12 +384,19 @@ void EXStage(statetype* state, statetype* newstate) {
             }
             
             //LW DATA GRABBING
-            if( opcode(state->MEMWB.instr) == LW) {
+            if( opcode(state->MEMWB.instr) == LW || opcode(state->WBEND.instr) == LW) {
                 if( field0(state->MEMWB.instr) == field0(state->IDEX.instr) ) {
                     temp_readregA = state->MEMWB.writedata;
                 }
+                else if( field0(state->WBEND.instr) == field0(state->IDEX.instr) ) {
+                    temp_readregA = state->WBEND.writedata;
+                }
+                
                 if( field0(state->MEMWB.instr) == field1(state->IDEX.instr) ) {
                     temp_readregB = state->MEMWB.writedata;
+                }
+                else if( field0(state->WBEND.instr) == field1(state->IDEX.instr) ) {
+                    temp_readregB = state->WBEND.writedata;
                 }
             }
         }
@@ -410,6 +412,8 @@ void EXStage(statetype* state, statetype* newstate) {
             newstate->EXMEM.aluresult = temp_readregB + state->IDEX.offset;
         }else if(opcode(state->IDEX.instr) == BEQ){
             newstate->EXMEM.aluresult = temp_readregA - temp_readregB; //difference between. If 0, they are equal
+            
+            printf("branch target: %d\noffset: %d\npc+1: %d", state->IDEX.offset + state->IDEX.pcplus1, state->IDEX.offset, state->IDEX.pcplus1);
             newstate->EXMEM.branchtarget = state->IDEX.offset + state->IDEX.pcplus1;
         }
     }
