@@ -151,6 +151,7 @@ int main(int argc, char *argv[]){
         /* note that fgets doesn't strip the terminating \n, checking its
          presence would allow to handle lines longer that sizeof(line) */
         state.datamem[i] = atoi(line);
+        state.instrmem[i] = atoi(line);
         i++;
     }
     fclose(fp);
@@ -209,7 +210,7 @@ int main(int argc, char *argv[]){
         
         /*------------------ WB stage ----------------- */
         WBStage(&state, &newstate);
-        ENDStage(&state, &newstate);
+        /*ENDStage(&state, &newstate);*/
         
         
         state = newstate; /* this is the last statement before the end of the loop.
@@ -323,7 +324,7 @@ void IFStage(statetype* state, statetype* newstate) {
      */
     newstate->pc = state->pc+1;
     newstate->IFID.pcplus1 = state->pc + 1;
-    newstate->IFID.instr = state->datamem[state->pc];
+    newstate->IFID.instr = state->instrmem[state->pc];
     newstate->pc = state->pc+1;
 }
 void IDStage(statetype* state, statetype* newstate) {
@@ -355,7 +356,7 @@ void EXStage(statetype* state, statetype* newstate) {
      */
     if(opcode(state->IDEX.instr) == ADD || opcode(state->IDEX.instr) == NAND || opcode(state->IDEX.instr) == LW || opcode(state->IDEX.instr) == SW || opcode(state->IDEX.instr) == BEQ) {
         
-        //IF NEXT instr is LW
+        //IF PREVIOUS instr is LW
         if( opcode(state->EXMEM.instr) == LW) {
             
             //If either regA or regB are being loaded into in future instr
@@ -375,7 +376,7 @@ void EXStage(statetype* state, statetype* newstate) {
             }else if(field2(state->MEMWB.instr) == field0(state->IDEX.instr)) {
                 temp_readregA = state->MEMWB.writedata;
             }else if(field2(state->WBEND.instr) == field0(state->IDEX.instr)) {
-                temp_readregA = state->MEMWB.writedata;
+                temp_readregA = state->WBEND.writedata;
             }
             
             //readregB
@@ -384,7 +385,17 @@ void EXStage(statetype* state, statetype* newstate) {
             }else if(field2(state->MEMWB.instr) == field1(state->IDEX.instr)) {
                 temp_readregB = state->MEMWB.writedata;
             }else if(field2(state->WBEND.instr) == field1(state->IDEX.instr)) {
-                temp_readregB = state->MEMWB.writedata;
+                temp_readregB = state->WBEND.writedata;
+            }
+            
+            //LW DATA GRABBING
+            if( opcode(state->MEMWB.instr) == LW) {
+                if( field0(state->MEMWB.instr) == field0(state->IDEX.instr) ) {
+                    temp_readregA = state->MEMWB.writedata;
+                }
+                if( field0(state->MEMWB.instr) == field1(state->IDEX.instr) ) {
+                    temp_readregB = state->MEMWB.writedata;
+                }
             }
         }
         
@@ -414,24 +425,27 @@ void MEMStage(statetype* state, statetype* newstate) {
     }else if(opcode(state->EXMEM.instr) == LW) {
         newstate->MEMWB.writedata = state->datamem[state->EXMEM.aluresult];
     }else if(opcode(state->EXMEM.instr) == BEQ) {
-        newstate->pc = state->EXMEM.branchtarget; //jump to branch target
-        newstate->MEMWB.writedata = 0; //??
         
-        //clear previous buffers?
-        newstate->IFID.instr = NOOPINSTRUCTION;
-        newstate->IDEX.instr = NOOPINSTRUCTION;
-        newstate->EXMEM.instr = NOOPINSTRUCTION;
+        //if the regs are equal
+        if(state->EXMEM.aluresult == 0) {
+            newstate->pc = state->EXMEM.branchtarget; //jump to branch target
+            
+            //clear previous buffers
+            newstate->IFID.instr = NOOPINSTRUCTION;
+            newstate->IDEX.instr = NOOPINSTRUCTION;
+            newstate->EXMEM.instr = NOOPINSTRUCTION;
+        }
+        newstate->MEMWB.writedata = 0; //??
     }
 }
 void WBStage(statetype* state, statetype* newstate) {
     newstate->WBEND.instr = state->MEMWB.instr;
     newstate->WBEND.writedata = state->MEMWB.writedata;
-}
-void ENDStage(statetype* state, statetype* newstate) {
-    if(opcode(state->WBEND.instr) == ADD || opcode(state->IDEX.instr) == NAND) {
-        newstate->reg[field2(state->WBEND.instr)] = state->WBEND.writedata;
-    }else if(opcode(state->WBEND.instr) == LW){
-        newstate->reg[field0(state->WBEND.instr)] = state->WBEND.writedata;
+    
+    if(opcode(state->MEMWB.instr) == ADD || opcode(state->MEMWB.instr) == NAND) {
+        newstate->reg[field2(state->MEMWB.instr)] = state->MEMWB.writedata;
+    }else if(opcode(state->MEMWB.instr) == LW){
+        newstate->reg[field0(state->MEMWB.instr)] = state->MEMWB.writedata;
     }
 }
 void printBits(int pack) {
