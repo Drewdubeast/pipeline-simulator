@@ -86,10 +86,9 @@ void printBits(int pack);
  */
 void IFStage(statetype* state, statetype* newstate);
 void IDStage(statetype* state, statetype* newstate);
-void EXStage(statetype* state, statetype* newstate);
-void MEMStage(statetype* state, statetype* newstate);
-void WBStage(statetype* state, statetype* newstate);
-void ENDStage(statetype* state, statetype* newstate);
+void EXStage(statetype* state, statetype* newstate, int* retired);
+void MEMStage(statetype* state, statetype* newstate, int* retired);
+void WBStage(statetype* state, statetype* newstate, int* retired);
 
 statetype state;
 statetype newstate;
@@ -156,6 +155,8 @@ int main(int argc, char *argv[]){
     }
     fclose(fp);
     
+    //count retired
+    int retired_count = 0;
     
     // Init all PC reg to 0.
     
@@ -203,13 +204,13 @@ int main(int argc, char *argv[]){
         
         
         /*------------------ EX stage ----------------- */
-        EXStage(&state, &newstate);
+        EXStage(&state, &newstate, &retired_count);
         
         /*------------------ MEM stage ----------------- */
-        MEMStage(&state, &newstate);
+        MEMStage(&state, &newstate, &retired_count);
         
         /*------------------ WB stage ----------------- */
-        WBStage(&state, &newstate);
+        WBStage(&state, &newstate, &retired_count);
         /*ENDStage(&state, &newstate);*/
         
         
@@ -330,9 +331,6 @@ void IFStage(statetype* state, statetype* newstate) {
     newstate->IFID.instr = state->instrmem[state->pc];
     newstate->pc = state->pc+1;
     
-    printinstruction(state->IFID.instr);
-    printinstruction(state->instrmem[state->pc]);
-    
     if(state->IFID.instr == state->instrmem[state->pc]) {
         printinstruction(state->IFID.instr);
         printinstruction(state->instrmem[state->pc]);
@@ -349,7 +347,7 @@ void IDStage(statetype* state, statetype* newstate) {
     newstate->IDEX.readregB = state->reg[field1(state->IFID.instr)]; //grab register from instr
     newstate->IDEX.offset = signextend(field2(state->IFID.instr)); //grab offset/dst_reg from instr
 }
-void EXStage(statetype* state, statetype* newstate) {
+void EXStage(statetype* state, statetype* newstate, int* retired) {
     newstate->EXMEM.instr = state->IDEX.instr;
     newstate->EXMEM.branchtarget = 0;
     newstate->EXMEM.aluresult = 0;
@@ -374,7 +372,7 @@ void EXStage(statetype* state, statetype* newstate) {
                 newstate->EXMEM.instr = NOOPINSTRUCTION;
                 newstate->IDEX = state->IDEX;
                 newstate->IFID = state->IFID;
-                newstate->retired = state->retired - 1;
+                *retired = *retired-1;
             }
         }
         else {
@@ -431,7 +429,7 @@ void EXStage(statetype* state, statetype* newstate) {
     
     newstate->EXMEM.readreg = temp_readregA; //for store word, this would be the only thing we would use : register a
 }
-void MEMStage(statetype* state, statetype* newstate) {
+void MEMStage(statetype* state, statetype* newstate, int* retired) {
     newstate->MEMWB.instr = state->EXMEM.instr;
     newstate->MEMWB.writedata = state->EXMEM.aluresult;
     
@@ -453,7 +451,7 @@ void MEMStage(statetype* state, statetype* newstate) {
             newstate->EXMEM.instr = NOOPINSTRUCTION;
             
             //account for flushed pipeline
-            newstate->retired = state->retired - 3;
+            *retired = *retired-3;
             
         }else {
             newstate->branches = state->branches + 1;
@@ -461,7 +459,7 @@ void MEMStage(statetype* state, statetype* newstate) {
         newstate->MEMWB.writedata = 0; //??
     }
 }
-void WBStage(statetype* state, statetype* newstate) {
+void WBStage(statetype* state, statetype* newstate, int* retired) {
     newstate->WBEND.instr = state->MEMWB.instr;
     newstate->WBEND.writedata = state->MEMWB.writedata;
     
@@ -472,7 +470,8 @@ void WBStage(statetype* state, statetype* newstate) {
     }
     
     //retire instruction
-    newstate->retired = state->retired + 1;
+    *retired = *retired+1;
+    newstate->retired = *retired;
 }
 void printBits(int pack) {
     int i;
